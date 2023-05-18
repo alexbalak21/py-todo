@@ -8,17 +8,24 @@ app.config['MYSQL_DATABASE_USER'] = 'root'
 app.config['MYSQL_DATABASE_DB'] = 'test'
 
 
+
+"""Class representing the structure of the data in the DB Key = Colum, Value = Data."""
 class Todo:
     def __init__(self, id: int, name: str, done: bool):
         self.id: int = id
         self.name: str = name
         self.done: bool = done
 
-
+"""Class to interface to the datebase."""
 class Db:
-    # def __init__(self):
-    #     self.connect = mysql.connect()
-    #     self.cursor = self.connect.cursor()
+    """Connects to the dataBase and obtains an cursor"""
+    def __init__(self):
+        self.connect = mysql.connect()
+        self.cursor = self.connect.cursor()
+
+    def commit_close(self):
+        self.connect.commit()
+        self.connect.close()
 
     def test_conn():
         try:
@@ -27,83 +34,71 @@ class Db:
             return True
         except:
             return False
-
-    def exists(id: int):
-        connect = mysql.connect()
-        cursor = connect.cursor()
+        
+        
+    """Check if ID exists in the database."""
+    def exists(self, id: int):
         select = """SELECT * FROM tasks WHERE ID=%s;"""
-        result = cursor.execute(select, (id,))
-        connect.commit()
-        connect.close()
+        result = self.cursor.execute(select, (id,))
+        self.connect.commit()
         if result != 1:
             return False
         else:
             return True
 
-    """RETURNS ALL THE TODOS FROM THE DB"""
-    def read_all():
-        connect = mysql.connect()
-        cursor = connect.cursor()
-        cursor.execute('SELECT * FROM tasks;')
-        data = cursor.fetchall()
-        connect.commit()
-        connect.close()
+    """RETURNS ALL THE ROWS FROM THE DB"""
+    def read_all(self):
+        self.cursor.execute('SELECT * FROM tasks;')
+        data = self.cursor.fetchall()
+        self.commit_close()
         formated = []
         for row in data:
             todo = Todo(*row)
             formated.append(todo.__dict__)
         return formated
-
-    def read_one(id: int):
+    
+    """Return one row of the table in thd DB."""
+    def read_one(self, id: int):
         qry = """SELECT * FROM tasks WHERE ID=%s;"""
-        connect = mysql.connect()
-        cursor = connect.cursor()
-        data = cursor.execute(qry, (id))
+        data = self.cursor.execute(qry, (id))
         if data != 1:
-            connect.close()
+            self.commit_close()
             return None
-        task = cursor.fetchone()
+        task = self.cursor.fetchone()
         return Todo(*task).__dict__
 
-    """SAVE ToDo TO THE DB """
-    def new_todo(taskName: str):
+    """SAVE NEW ToDO TO THE DB """
+    def new_todo(self, taskName: str):
         qry = """INSERT INTO tasks (name) VALUES (%s);"""
-        connect = mysql.connect()
-        cursor = connect.cursor()
-        done = cursor.execute(qry, (taskName,))
-        connect.commit()
-        connect.close()
+        done = self.cursor.execute(qry, (taskName,))
+        self.commit_close()
         return done
 
-    def update_one(id: int, name: str):
-        connect = mysql.connect()
-        cursor = connect.cursor()
-        select = """SELECT * FROM tasks WHERE ID=%s;"""
+
+    """UPDATES THE NAME OF THE TASK IN THE DB"""
+    def update_one(self, id: int, name: str):
+        if not self.exists(id): 
+            return None
         update = """UPDATE tasks SET name=%s WHERE id=%s;"""
-        exists = cursor.execute(select, (id,))
-        connect.commit()
-        if exists != 1:
-            connect.close()
-            return None
-        updated = cursor.execute(update, (name, id))
-        connect.commit()
-        connect.close()
+        updated = self.cursor.execute(update, (name, id,))
+        self.commit_close()
         return updated
+    
 
-    def delete_one(id: int):
-        connect = mysql.connect()
-        cursor = connect.cursor()
+
+    def delete_one(self, id: int):
+        if not self.exists(id): return None
         dlt = """DELETE FROM tasks WHERE id=%s;"""
-        select = """SELECT * FROM tasks WHERE ID=%s;"""
-        exists = cursor.execute(select, (id,))
-        connect.commit()
-        if exists != 1:
-            connect.close()
-            return None
-        delted = cursor.execute(dlt, (id,))
-        connect.commit()
-        connect.close()
+        delted = self.cursor.execute(dlt, (id,))
+        self.commit_close()
         return delted
+    
 
-    def update_state(id: int):
-        return
+    def update_state(self, id: int, state:bool):
+        if not self.exists(id):
+            self.commit_close()
+            return None
+        update = """UPDATE tasks SET done=%s WHERE id=%s;"""
+        updated = self.cursor.execute(update, (state, id))
+        self.commit_close()
+        return updated

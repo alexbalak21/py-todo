@@ -13,4 +13,8 @@ SELECT * FROM tasks WHERE ID=1;
 
 UPDATE tasks SET name='Most important task' WHERE id=1
 
+UPDATE tasks SET done='1' WHERE id=1
+
 DELETE FROM tasks WHERE id=22
+
+SELECT done FROM tasks where id=1
